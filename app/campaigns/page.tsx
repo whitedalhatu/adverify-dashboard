@@ -1,28 +1,22 @@
 'use client'
 import { useState } from 'react'
 
+const NAV = [['Dashboard','/dashboard'],['Campaigns','/campaigns'],['Query','/query'],['Stations','/stations'],['Upload','/upload']]
+
 const CAMPAIGNS = [
-  { id: 1, name: 'Dangote Cement Q2 2026', advertiser: 'Dangote Group', agency: 'SO&U', stations: ['Freedom Radio Kano', 'Dala FM Kano'], market: 'Kano', start: '2026-04-01', end: '2026-04-30', booked: 120, aired: 98, status: 'active' },
-  { id: 2, name: 'MTN Data Bundle Push', advertiser: 'MTN Nigeria', agency: 'X3M Ideas', stations: ['Freedom Radio Kano', 'Freedom Radio Kaduna', 'Freedom Radio Abuja'], market: 'Multi', start: '2026-04-05', end: '2026-04-25', booked: 200, aired: 176, status: 'active' },
-  { id: 3, name: 'Airtel Unlimited April', advertiser: 'Airtel Nigeria', agency: 'Insight', stations: ['Freedom Radio Abuja', 'Freedom Radio Kaduna'], market: 'Multi', start: '2026-04-01', end: '2026-04-30', booked: 90, aired: 90, status: 'active' },
-  { id: 4, name: 'PZ Cussons Robb Ramadan', advertiser: 'PZ Cussons', agency: 'Noahs Ark', stations: ['Freedom Radio Kano', 'Dala FM Kano', 'Freedom Radio Dutse'], market: 'North', start: '2026-03-15', end: '2026-04-14', booked: 150, aired: 150, status: 'completed' },
-  { id: 5, name: 'GTBank SME Promo', advertiser: 'GTBank', agency: 'DDB Lagos', stations: ['Freedom Radio Abuja'], market: 'Abuja', start: '2026-04-08', end: '2026-04-22', booked: 60, aired: 41, status: 'active' },
+  { id: 1, name: 'Dangote Cement Q2 2026',  advertiser: 'Dangote Group',  agency: 'SO&U',      stations: ['Freedom Radio Kano', 'Dala FM Kano'],              market: 'Kano',   start: '2026-04-01', end: '2026-04-30', booked: 120, aired: 98,  status: 'active' },
+  { id: 2, name: 'MTN Data Bundle Push',     advertiser: 'MTN Nigeria',    agency: 'X3M Ideas', stations: ['Freedom Radio Kano', 'Freedom Radio Kaduna'],        market: 'Multi',  start: '2026-04-05', end: '2026-04-25', booked: 200, aired: 176, status: 'active' },
+  { id: 3, name: 'Airtel Unlimited April',   advertiser: 'Airtel Nigeria', agency: 'Insight',   stations: ['Freedom Radio Kaduna'],                             market: 'Kaduna', start: '2026-04-01', end: '2026-04-30', booked: 90,  aired: 90,  status: 'active' },
+  { id: 4, name: 'PZ Cussons Robb Ramadan', advertiser: 'PZ Cussons',     agency: 'Noahs Ark', stations: ['Freedom Radio Kano', 'Dala FM Kano', 'Freedom Radio Dutse'], market: 'North', start: '2026-03-15', end: '2026-04-14', booked: 150, aired: 150, status: 'completed' },
+  { id: 5, name: 'GTBank SME Promo',         advertiser: 'GTBank',         agency: 'DDB Lagos', stations: ['Freedom Radio Kaduna'],                             market: 'Kaduna', start: '2026-04-08', end: '2026-04-22', booked: 60,  aired: 41,  status: 'active' },
 ]
 
 export default function Campaigns() {
   const [filter, setFilter] = useState('all')
-
   const filtered = filter === 'all' ? CAMPAIGNS : CAMPAIGNS.filter(c => c.status === filter)
 
-  function compliance(booked: number, aired: number) {
-    return Math.round((aired / booked) * 100)
-  }
-
-  function complianceColor(pct: number) {
-    if (pct >= 95) return '#22C55E'
-    if (pct >= 80) return '#F59E0B'
-    return '#EF4444'
-  }
+  function compliance(booked: number, aired: number) { return Math.round((aired / booked) * 100) }
+  function complianceColor(pct: number) { return pct >= 95 ? '#22C55E' : pct >= 80 ? '#F59E0B' : '#EF4444' }
 
   return (
     <div style={{ fontFamily: 'system-ui', background: '#F5F7FA', minHeight: '100vh' }}>
@@ -32,8 +26,8 @@ export default function Campaigns() {
           <span style={{ color: '#028090', fontWeight: 400, fontSize: 20 }}>Nigeria</span>
         </div>
         <nav style={{ display: 'flex', gap: 24 }}>
-          {['Dashboard', 'Campaigns', 'Query'].map(item => (
-            <a key={item} href={`/${item.toLowerCase()}`} style={{ color: item === 'Campaigns' ? '#028090' : '#CADCFC', textDecoration: 'none', fontSize: 14 }}>{item}</a>
+          {NAV.map(([label, href]) => (
+            <a key={href} href={href} style={{ color: href === '/campaigns' ? '#028090' : '#CADCFC', textDecoration: 'none', fontSize: 14 }}>{label}</a>
           ))}
         </nav>
       </div>
@@ -44,17 +38,15 @@ export default function Campaigns() {
             <div style={{ fontSize: 22, fontWeight: 700, color: '#0D1B3E', marginBottom: 4 }}>Campaigns</div>
             <div style={{ fontSize: 14, color: '#64748B' }}>Track booked vs. aired spots for every campaign</div>
           </div>
-          <button style={{ background: '#028090', color: 'white', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            + New campaign
-          </button>
+          <button style={{ background: '#028090', color: 'white', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>+ New campaign</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
           {[
             { label: 'Total campaigns',    value: CAMPAIGNS.length },
             { label: 'Active',             value: CAMPAIGNS.filter(c => c.status === 'active').length },
-            { label: 'Total spots booked', value: CAMPAIGNS.reduce((a, c) => a + c.booked, 0) },
-            { label: 'Total spots aired',  value: CAMPAIGNS.reduce((a, c) => a + c.aired, 0) },
+            { label: 'Total spots booked', value: CAMPAIGNS.reduce((a,c) => a + c.booked, 0) },
+            { label: 'Total spots aired',  value: CAMPAIGNS.reduce((a,c) => a + c.aired, 0) },
           ].map(card => (
             <div key={card.label} style={{ background: 'white', borderRadius: 12, padding: '1.25rem', border: '0.5px solid #E2E8F0' }}>
               <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>{card.label}</div>
@@ -64,11 +56,10 @@ export default function Campaigns() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {['all', 'active', 'completed'].map(f => (
+          {['all','active','completed'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               style={{ padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
-                background: filter === f ? '#0D1B3E' : 'white',
-                color: filter === f ? 'white' : '#64748B',
+                background: filter === f ? '#0D1B3E' : 'white', color: filter === f ? 'white' : '#64748B',
                 boxShadow: filter === f ? 'none' : '0 0 0 1px #E2E8F0' }}>
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
@@ -92,14 +83,9 @@ export default function Campaigns() {
                         {c.status.toUpperCase()}
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>
-                      {c.advertiser} · {c.agency} · {c.market}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#94A3B8' }}>
-                      {c.start} to {c.end} · {c.stations.join(', ')}
-                    </div>
+                    <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>{c.advertiser} · {c.agency} · {c.market}</div>
+                    <div style={{ fontSize: 12, color: '#94A3B8' }}>{c.start} to {c.end} · {c.stations.join(', ')}</div>
                   </div>
-
                   <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 11, color: '#64748B', marginBottom: 4 }}>Booked</div>
@@ -121,10 +107,9 @@ export default function Campaigns() {
                     )}
                   </div>
                 </div>
-
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ background: '#F1F5F9', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: color, borderRadius: 4 }}></div>
+                  <div style={{ background: '#F1F5F9', borderRadius: 4, height: 6 }}>
+                    <div style={{ width: Math.min(pct,100) + '%', height: '100%', background: color, borderRadius: 4 }}></div>
                   </div>
                 </div>
               </div>

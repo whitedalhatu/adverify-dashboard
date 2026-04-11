@@ -11,6 +11,7 @@ export default async function Dashboard() {
   const { data: stations } = await supabase
     .from('stations')
     .select('*')
+    .eq('active', true)
     .order('market')
 
   const { data: recentPlays } = await supabase
@@ -19,10 +20,11 @@ export default async function Dashboard() {
     .order('play_start', { ascending: false })
     .limit(10)
 
+  const today = new Date().toISOString().split('T')[0]
   const { count: playsToday } = await supabase
     .from('play_events')
     .select('*', { count: 'exact', head: true })
-    .gte('play_start', new Date().toISOString().split('T')[0])
+    .gte('play_start', today)
 
   const { count: activeCampaigns } = await supabase
     .from('campaigns')
@@ -34,6 +36,8 @@ export default async function Dashboard() {
     .select('*', { count: 'exact', head: true })
     .eq('status', 'open')
 
+  const stationCount = stations?.length ?? 0
+
   return (
     <div style={{ fontFamily: 'system-ui', background: '#F5F7FA', minHeight: '100vh' }}>
       <div style={{ background: '#0D1B3E', padding: '0 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
@@ -42,11 +46,8 @@ export default async function Dashboard() {
           <span style={{ color: '#028090', fontWeight: 400, fontSize: 20 }}>Nigeria</span>
         </div>
         <nav style={{ display: 'flex', gap: 24 }}>
-          {['Dashboard', 'Campaigns', 'Query', 'Stations'].map(item => (
-            <a key={item} href={`/${item.toLowerCase()}`}
-              style={{ color: item === 'Dashboard' ? '#028090' : '#CADCFC', textDecoration: 'none', fontSize: 14 }}>
-              {item}
-            </a>
+          {[['Dashboard','/dashboard'],['Campaigns','/campaigns'],['Query','/query'],['Stations','/stations'],['Upload','/upload']].map(([label, href]) => (
+            <a key={href} href={href} style={{ color: href === '/dashboard' ? '#028090' : '#CADCFC', textDecoration: 'none', fontSize: 14 }}>{label}</a>
           ))}
         </nav>
       </div>
@@ -54,10 +55,10 @@ export default async function Dashboard() {
       <div style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
           {[
-            { label: 'Stations monitored', value: stations?.length ?? 0,    sub: 'All live' },
-            { label: 'Plays today',         value: playsToday ?? 0,          sub: 'Detected via stream' },
-            { label: 'Active campaigns',    value: activeCampaigns ?? 0,     sub: 'Across all markets' },
-            { label: 'Missed spots',        value: missedSpots ?? 0,         sub: 'Flagged for review' },
+            { label: 'Stations monitored', value: stationCount, sub: stationCount + ' active stations' },
+            { label: 'Plays today',         value: playsToday ?? 0, sub: 'Detected via stream' },
+            { label: 'Active campaigns',    value: activeCampaigns ?? 0, sub: 'Across all markets' },
+            { label: 'Missed spots',        value: missedSpots ?? 0, sub: 'Flagged for review' },
           ].map(card => (
             <div key={card.label} style={{ background: 'white', borderRadius: 12, padding: '1.25rem', border: '0.5px solid #E2E8F0' }}>
               <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>{card.label}</div>
@@ -70,9 +71,6 @@ export default async function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           <div style={{ background: 'white', borderRadius: 12, padding: '1.5rem', border: '0.5px solid #E2E8F0' }}>
             <div style={{ fontWeight: 600, fontSize: 16, color: '#0D1B3E', marginBottom: 16 }}>Station status</div>
-            {stations?.length === 0 && (
-              <div style={{ color: '#94A3B8', fontSize: 14 }}>No stations found</div>
-            )}
             {stations?.map(s => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid #F1F5F9' }}>
                 <div>
@@ -80,10 +78,8 @@ export default async function Dashboard() {
                   <div style={{ fontSize: 12, color: '#64748B' }}>{s.market} · {s.frequency}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.active ? '#22C55E' : '#EF4444' }}></div>
-                  <span style={{ fontSize: 12, color: s.active ? '#22C55E' : '#EF4444', fontWeight: 500 }}>
-                    {s.active ? 'LIVE' : 'OFFLINE'}
-                  </span>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E' }}></div>
+                  <span style={{ fontSize: 12, color: '#22C55E', fontWeight: 500 }}>LIVE</span>
                 </div>
               </div>
             ))}
@@ -91,9 +87,9 @@ export default async function Dashboard() {
 
           <div style={{ background: 'white', borderRadius: 12, padding: '1.5rem', border: '0.5px solid #E2E8F0' }}>
             <div style={{ fontWeight: 600, fontSize: 16, color: '#0D1B3E', marginBottom: 16 }}>Recent play events</div>
-            {recentPlays?.length === 0 && (
+            {!recentPlays?.length && (
               <div style={{ color: '#94A3B8', fontSize: 14, textAlign: 'center', padding: '2rem 0' }}>
-                No play events yet — start the monitor worker to begin detecting ads.
+                No play events yet — upload an ad creative to begin detection.
               </div>
             )}
             {recentPlays?.map((play, i) => (

@@ -16,54 +16,55 @@ const CONFIG = {
     url: 'https://toqevpwwssimvytitrye.supabase.co',
     serviceKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcWV2cHd3c3NpbXZ5dGl0cnllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTgxNzE2NSwiZXhwIjoyMDkxMzkzMTY1fQ.eqwlPZxOmu0MEC8fhHfHqWA5dUBAEaXRkai5VWce09E',
   },
-  chunkDurationSeconds: 30,
+  chunkDurationSeconds: 15,
   tempDir: '/tmp/adverify_chunks',
   retryDelayMs: 5000,
 };
 
 const STATIONS = [
-  { id: 'freedom-kano',   name: 'Freedom Radio Kano',   market: 'Kano',   frequency: '99.3 FM',  streamUrl: 'http://s2.voscast.com:12330/' },
-  { id: 'freedom-kaduna', name: 'Freedom Radio Kaduna', market: 'Kaduna', frequency: '90.5 FM',  streamUrl: 'https://stream.zeno.fm/pwbsfalp9o8tv' },
-  { id: 'freedom-dutse',  name: 'Freedom Radio Dutse',  market: 'Dutse',  frequency: '89.5 FM',  streamUrl: 'http://s2.voscast.com:12330/' },
-  { id: 'freedom-abuja',  name: 'Freedom Radio Abuja',  market: 'Abuja',  frequency: '95.1 FM',  streamUrl: 'http://s2.voscast.com:12330/' },
-  { id: 'dala-fm',        name: 'Dala FM Kano',         market: 'Kano',   frequency: '101.5 FM', streamUrl: 'http://s2.voscast.com:12334' },
+  { id: 'freedom-kano',   name: 'Freedom Radio Kano',   market: 'Kano',   frequency: '99.3 FM',  streamUrl: 'https://stream.zeno.fm/t8bhnmek8mzuv' },
+  { id: 'freedom-kaduna', name: 'Freedom Radio Kaduna', market: 'Kaduna', frequency: '92.9 FM',  streamUrl: 'https://stream.zeno.fm/5z9v4k7e9mzuv' },
+  { id: 'freedom-dutse',  name: 'Freedom Radio Dutse',  market: 'Dutse',  frequency: '99.5 FM',  streamUrl: 'https://stream.zeno.fm/wp75as7e9mzuv' },
+  { id: 'dala-fm',        name: 'Dala FM Kano',         market: 'Kano',   frequency: '88.5 FM',  streamUrl: 'https://stream.zeno.fm/9zdvuszaanzuv' },
 ];
 
 const supabase = createClient(CONFIG.supabase.url, CONFIG.supabase.serviceKey);
 
 function buildACRSignature(timestamp) {
   const { accessKey, accessSecret } = CONFIG.acrcloud;
-  const stringToSign = ['POST', '/v1/identify', accessKey, 'audio', '1', timestamp].join('\n');
-  return crypto.createHmac('sha1', accessSecret).update(stringToSign).digest('base64');
+  const str = ['POST', '/v1/identify', accessKey, 'audio', '1', timestamp].join('\n');
+  return crypto.createHmac('sha1', accessSecret).update(str).digest('base64');
 }
 
 function captureChunk(station) {
   return new Promise((resolve, reject) => {
     const timestamp = Date.now();
-    const outputFile = path.join(CONFIG.tempDir, station.id + '_' + timestamp + '.mp3');
-    const ffmpeg = spawn('ffmpeg', [
+    const outputFile = path.join(CONFIG.tempDir, station.id + '_' + timestamp + '.wav');
+    const args = [
       '-y',
+      '-reconnect', '1',
+      '-reconnect_streamed', '1',
+      '-reconnect_delay_max', '5',
       '-i', station.streamUrl,
       '-t', String(CONFIG.chunkDurationSeconds),
+      '-vn',
       '-ar', '8000',
       '-ac', '1',
-      '-acodec', 'libmp3lame',
-      '-b:a', '64k',
+      '-acodec', 'pcm_s16le',
       outputFile,
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
-
+    ];
+    const ffmpeg = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     ffmpeg.on('close', (code) => {
-      if (code === 0 && fs.existsSync(outputFile)) {
+      if (fs.existsSync(outputFile) && fs.statSync(outputFile).size > 1000) {
         resolve(outputFile);
       } else {
-        reject(new Error('ffmpeg exited with code ' + code + ' for ' + station.name));
+        reject(new Error('ffmpeg code ' + code + ' for ' + station.name));
       }
     });
-
     setTimeout(() => {
       ffmpeg.kill('SIGKILL');
       reject(new Error('ffmpeg timeout for ' + station.name));
-    }, (CONFIG.chunkDurationSeconds + 15) * 1000);
+    }, (CONFIG.chunkDurationSeconds + 20) * 1000);
   });
 }
 
@@ -72,7 +73,7 @@ async function identifyChunk(audioFile) {
   const signature = buildACRSignature(timestamp.toString());
   const fileBuffer = fs.readFileSync(audioFile);
   const form = new FormData();
-  form.append('sample', fileBuffer, { filename: path.basename(audioFile), contentType: 'audio/mp3' });
+  form.append('sample', fileBuffer, { filename: 'sample.wav', contentType: 'audio/wav' });
   form.append('sample_bytes', fileBuffer.length.toString());
   form.append('access_key', CONFIG.acrcloud.accessKey);
   form.append('data_type', 'audio');
@@ -80,9 +81,7 @@ async function identifyChunk(audioFile) {
   form.append('timestamp', timestamp.toString());
   form.append('signature', signature);
   const response = await fetch('https://' + CONFIG.acrcloud.host + '/v1/identify', {
-    method: 'POST',
-    body: form,
-    timeout: 20000,
+    method: 'POST', body: form, timeout: 30000,
   });
   return response.json();
 }
@@ -99,7 +98,6 @@ async function logPlayEvent(station, acr, chunkStartTime) {
     ad_id: match.acrid,
     ad_title: match.title || 'Unknown',
     advertiser: match.custom_fields ? match.custom_fields.advertiser : null,
-    campaign_id: match.custom_fields ? match.custom_fields.campaign_id : null,
     play_start: new Date(chunkStartTime).toISOString(),
     duration_sec: match.duration_ms ? Math.round(match.duration_ms / 1000) : null,
     confidence: match.score || null,
@@ -123,12 +121,14 @@ async function monitorStation(station) {
     let audioFile = null;
     try {
       audioFile = await captureChunk(station);
+      const fileSize = fs.statSync(audioFile).size;
+      console.log('[CAPTURE] ' + station.name + ' — ' + Math.round(fileSize/1024) + 'KB');
       const acr = await identifyChunk(audioFile);
       const status = acr && acr.status ? acr.status.code : null;
       if (status === 0) {
         await logPlayEvent(station, acr, chunkStart);
       } else if (status === 1001) {
-        console.log('[NO MATCH] ' + station.name + ' — listening, no registered ad detected');
+        console.log('[NO MATCH] ' + station.name + ' — listening');
       } else {
         console.warn('[ACR WARN] ' + station.name + ': code ' + status + ' — ' + (acr && acr.status ? acr.status.msg : 'unknown'));
       }

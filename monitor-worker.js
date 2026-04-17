@@ -28,6 +28,19 @@ const STATIONS = [
   { id: 'dala-fm',        name: 'Dala FM Kano',         market: 'Kano',   frequency: '88.5 FM',  streamUrl: 'https://stream.zeno.fm/9zdvuszaanzuv' },
 ];
 
+
+const lastMatch = {};
+
+function isDuplicate(stationId, acrid) {
+  const key = stationId + '_' + acrid;
+  const now = Date.now();
+  if (lastMatch[key] && (now - lastMatch[key]) < 60000) {
+    return true;
+  }
+  lastMatch[key] = now;
+  return false;
+}
+
 const supabase = createClient(CONFIG.supabase.url, CONFIG.supabase.serviceKey);
 
 function buildACRSignature(timestamp) {
@@ -126,7 +139,12 @@ async function monitorStation(station) {
       const acr = await identifyChunk(audioFile);
       const status = acr && acr.status ? acr.status.code : null;
       if (status === 0) {
-        await logPlayEvent(station, acr, chunkStart);
+        const matchData = acr && acr.metadata && acr.metadata.custom_files && acr.metadata.custom_files[0]
+        if (matchData && isDuplicate(station.id, matchData.acrid)) {
+          console.log('[SKIP] ' + station.name + ' — duplicate within 60s')
+        } else {
+          await logPlayEvent(station, acr, chunkStart)
+        };
       } else if (status === 1001) {
         console.log('[NO MATCH] ' + station.name + ' — listening');
       } else {

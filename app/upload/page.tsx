@@ -1,169 +1,153 @@
 'use client'
 import { useState } from 'react'
+import Nav from '../components/Nav'
 
 export default function Upload() {
-  const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [advertiser, setAdvertiser] = useState('')
   const [agency, setAgency] = useState('')
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
+  const [acrid, setAcrid] = useState('')
+  const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
+  const [step, setStep] = useState(1)
 
-  async function handleUpload() {
-    if (!file || !title || !advertiser) {
-      setMessage('Please fill in all required fields and select an audio file.')
+  async function handleSave() {
+    if (!title || !advertiser || !acrid) {
+      setMessage('Please fill in all required fields including the ACR ID.')
       setStatus('error')
       return
     }
-
-    setStatus('uploading')
-    setMessage('Uploading and registering fingerprint with ACRCloud...')
-
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('title', title)
-    formData.append('advertiser', advertiser)
-    formData.append('agency', agency)
-
+    setStatus('saving')
+    setMessage('Saving to database...')
     try {
       const res = await fetch('/api/upload-creative', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, advertiser, agency, acrid }),
       })
       const data = await res.json()
       if (res.ok) {
         setStatus('success')
-        setMessage('Ad creative registered successfully. The monitor will now detect it when it airs.')
-        setFile(null)
+        setMessage('Ad creative registered successfully. The monitor will now detect it automatically.')
         setTitle('')
         setAdvertiser('')
         setAgency('')
+        setAcrid('')
+        setStep(1)
       } else {
         setStatus('error')
-        setMessage('Error: ' + (data.error || 'Upload failed'))
+        setMessage(data.error || 'Failed to save.')
       }
-    } catch (err) {
+    } catch (err: any) {
       setStatus('error')
-      setMessage('Network error — please try again.')
+      setMessage(err.message)
     }
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: 8,
+    border: '1px solid #E2E8F0', fontSize: 14, outline: 'none',
+    boxSizing: 'border-box' as const, fontFamily: 'system-ui',
+  }
+  const labelStyle = {
+    fontSize: 13, fontWeight: 500 as const, color: '#0D1B3E',
+    display: 'block' as const, marginBottom: 6,
   }
 
   return (
     <div style={{ fontFamily: 'system-ui', background: '#F5F7FA', minHeight: '100vh' }}>
-      <div style={{ background: '#0D1B3E', padding: '0 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'white', fontWeight: 800, fontSize: 20 }}>AdVerify</span>
-          <span style={{ color: '#028090', fontWeight: 400, fontSize: 20 }}>Nigeria</span>
-        </div>
-        <nav style={{ display: 'flex', gap: 24 }}>
-          {['Dashboard', 'Campaigns', 'Query', 'Stations', 'Upload'].map(item => (
-            <a key={item} href={item === 'Upload' ? '/upload' : `/${item.toLowerCase()}`}
-              style={{ color: item === 'Upload' ? '#028090' : '#CADCFC', textDecoration: 'none', fontSize: 14 }}>
-              {item}
-            </a>
-          ))}
-        </nav>
-      </div>
-
-      <div style={{ padding: '2rem', maxWidth: 680, margin: '0 auto' }}>
-        <div style={{ marginBottom: 32 }}>
+      <Nav />
+      <div style={{ padding: '2rem', maxWidth: 700, margin: '0 auto' }}>
+        <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#0D1B3E', marginBottom: 4 }}>Register ad creative</div>
-          <div style={{ fontSize: 14, color: '#64748B' }}>Upload an audio file to register its fingerprint. The monitor will detect it automatically when it airs.</div>
+          <div style={{ fontSize: 14, color: '#64748B' }}>Upload your audio file to ACRCloud, then register it here to begin detection.</div>
         </div>
 
-        <div style={{ background: 'white', borderRadius: 12, padding: '2rem', border: '0.5px solid #E2E8F0' }}>
+        {/* Step 1 — Upload to ACRCloud */}
+        <div style={{ background: 'white', borderRadius: 12, padding: '1.5rem', border: step === 1 ? '2px solid #028090' : '0.5px solid #E2E8F0', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: step > 1 ? '#22C55E' : '#028090', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+              {step > 1 ? '✓' : '1'}
+            </div>
+            <div style={{ fontWeight: 600, fontSize: 15, color: '#0D1B3E' }}>Upload audio file to ACRCloud</div>
+          </div>
+          <div style={{ fontSize: 13, color: '#64748B', marginBottom: 16, lineHeight: 1.7 }}>
+            Go to the ACRCloud console and upload your MP3 file to the <strong>adverify-ng</strong> bucket. Fill in the advertiser name and station in the custom fields. Once uploaded, copy the ACR ID shown in the bucket list.
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <a href="https://console.acrcloud.com/avr?region=eu-west-1#/file-buckets/adverify-ng?id=30414" target="_blank"
+              style={{ background: '#028090', color: 'white', padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Open ACRCloud Console →
+            </a>
+            <button onClick={() => setStep(2)}
+              style={{ background: 'white', border: '1px solid #028090', color: '#028090', padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              I've uploaded the file →
+            </button>
+          </div>
+        </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#0D1B3E', display: 'block', marginBottom: 8 }}>
-              Audio file <span style={{ color: '#EF4444' }}>*</span>
-            </label>
-            <div
-              onClick={() => document.getElementById('fileInput')?.click()}
-              style={{ border: '2px dashed #E2E8F0', borderRadius: 8, padding: '2rem', textAlign: 'center', cursor: 'pointer', background: file ? '#E0F4F5' : '#F8FAFC' }}>
-              <div style={{ fontSize: 13, color: file ? '#028090' : '#64748B', fontWeight: file ? 600 : 400 }}>
-                {file ? file.name : 'Click to select MP3 or WAV file'}
+        {/* Step 2 — Register in AdVerify */}
+        <div style={{ background: 'white', borderRadius: 12, padding: '1.5rem', border: step === 2 ? '2px solid #028090' : '0.5px solid #E2E8F0', opacity: step < 2 ? 0.5 : 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: status === 'success' ? '#22C55E' : '#028090', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+              {status === 'success' ? '✓' : '2'}
+            </div>
+            <div style={{ fontWeight: 600, fontSize: 15, color: '#0D1B3E' }}>Register in AdVerify database</div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>ACR ID <span style={{ color: '#EF4444' }}>*</span></label>
+              <input value={acrid} onChange={e => setAcrid(e.target.value)}
+                placeholder="Paste the ACR ID from ACRCloud bucket list"
+                style={inputStyle} disabled={step < 2} />
+              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>Found in the ACR ID column of your bucket list</div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Ad title <span style={{ color: '#EF4444' }}>*</span></label>
+              <input value={title} onChange={e => setTitle(e.target.value)}
+                placeholder="e.g. FCMB Group Radio 30s April 2026"
+                style={inputStyle} disabled={step < 2} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div>
+                <label style={labelStyle}>Advertiser <span style={{ color: '#EF4444' }}>*</span></label>
+                <input value={advertiser} onChange={e => setAdvertiser(e.target.value)}
+                  placeholder="e.g. FCMB"
+                  style={inputStyle} disabled={step < 2} />
               </div>
-              {file && (
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </div>
-              )}
+              <div>
+                <label style={labelStyle}>Agency <span style={{ color: '#94A3B8', fontWeight: 400 }}>(optional)</span></label>
+                <input value={agency} onChange={e => setAgency(e.target.value)}
+                  placeholder="e.g. SO&U"
+                  style={inputStyle} disabled={step < 2} />
+              </div>
             </div>
-            <input
-              id="fileInput"
-              type="file"
-              accept="audio/*"
-              style={{ display: 'none' }}
-              onChange={e => setFile(e.target.files?.[0] || null)}
-            />
+
+            {message && (
+              <div style={{ padding: '10px 14px', borderRadius: 8, fontSize: 13,
+                background: status === 'success' ? '#DCFCE7' : status === 'error' ? '#FEF2F2' : '#E0F4F5',
+                color: status === 'success' ? '#16A34A' : status === 'error' ? '#EF4444' : '#028090' }}>
+                {message}
+              </div>
+            )}
+
+            <button onClick={handleSave} disabled={status === 'saving' || step < 2}
+              style={{ background: status === 'saving' || step < 2 ? '#94A3B8' : '#028090', color: 'white', border: 'none', borderRadius: 8, padding: '12px', fontSize: 14, fontWeight: 600, cursor: status === 'saving' || step < 2 ? 'not-allowed' : 'pointer' }}>
+              {status === 'saving' ? 'Saving...' : 'Register ad creative'}
+            </button>
           </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#0D1B3E', display: 'block', marginBottom: 8 }}>
-              Ad title <span style={{ color: '#EF4444' }}>*</span>
-            </label>
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Dangote Cement 30s April 2026"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#0D1B3E', display: 'block', marginBottom: 8 }}>
-              Advertiser <span style={{ color: '#EF4444' }}>*</span>
-            </label>
-            <input
-              value={advertiser}
-              onChange={e => setAdvertiser(e.target.value)}
-              placeholder="e.g. Dangote Group"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <div style={{ marginBottom: 28 }}>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#0D1B3E', display: 'block', marginBottom: 8 }}>
-              Agency <span style={{ color: '#94A3B8', fontWeight: 400 }}>(optional)</span>
-            </label>
-            <input
-              value={agency}
-              onChange={e => setAgency(e.target.value)}
-              placeholder="e.g. SO&U"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          {message && (
-            <div style={{ marginBottom: 20, padding: '12px 16px', borderRadius: 8, fontSize: 13,
-              background: status === 'success' ? '#DCFCE7' : status === 'error' ? '#FEF2F2' : '#E0F4F5',
-              color: status === 'success' ? '#16A34A' : status === 'error' ? '#EF4444' : '#028090' }}>
-              {message}
-            </div>
-          )}
-
-          <button
-            onClick={handleUpload}
-            disabled={status === 'uploading'}
-            style={{ width: '100%', background: status === 'uploading' ? '#94A3B8' : '#028090', color: 'white', border: 'none', borderRadius: 8, padding: '12px', fontSize: 15, fontWeight: 600, cursor: status === 'uploading' ? 'not-allowed' : 'pointer' }}>
-            {status === 'uploading' ? 'Registering fingerprint...' : 'Register ad creative'}
-          </button>
         </div>
 
-        <div style={{ marginTop: 24, background: 'white', borderRadius: 12, padding: '1.5rem', border: '0.5px solid #E2E8F0' }}>
-          <div style={{ fontWeight: 600, fontSize: 14, color: '#0D1B3E', marginBottom: 12 }}>How it works</div>
-          {[
-            'Upload your ad audio file (MP3 or WAV)',
-            'ACRCloud generates a unique audio fingerprint',
-            'The monitor worker continuously listens to all stations',
-            'When the ad airs, it is detected within 30 seconds',
-            'A play event is logged with timestamp, station and confidence score',
-          ].map((step, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 10, alignItems: 'flex-start' }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#E0F4F5', color: '#028090', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
-              <div style={{ fontSize: 13, color: '#64748B', paddingTop: 2 }}>{step}</div>
-            </div>
-          ))}
+        {/* Already registered */}
+        <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', border: '0.5px solid #E2E8F0', marginTop: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#0D1B3E', marginBottom: 8 }}>Already registered creatives</div>
+          <div style={{ fontSize: 13, color: '#64748B' }}>
+            Peak Yoghurt Radio Campaign · MTN Yellowpreneur Hausa 45s · FCMB Group Radio
+          </div>
+          <div style={{ fontSize: 12, color: '#028090', marginTop: 4 }}>3 creatives active — monitor detecting automatically</div>
         </div>
       </div>
     </div>

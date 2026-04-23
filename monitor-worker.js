@@ -16,7 +16,7 @@ const CONFIG = {
     url: 'https://toqevpwwssimvytitrye.supabase.co',
     serviceKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcWV2cHd3c3NpbXZ5dGl0cnllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTgxNzE2NSwiZXhwIjoyMDkxMzkzMTY1fQ.eqwlPZxOmu0MEC8fhHfHqWA5dUBAEaXRkai5VWce09E',
   },
-  chunkDurationSeconds: 15,
+  chunkDurationSeconds: 30,
   tempDir: '/tmp/adverify_chunks',
   retryDelayMs: 5000,
 };
@@ -82,22 +82,15 @@ function captureChunk(station) {
 }
 
 async function identifyChunk(audioFile) {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const signature = buildACRSignature(timestamp.toString());
-  const fileBuffer = fs.readFileSync(audioFile);
-  const form = new FormData();
-  form.append('sample', fileBuffer, { filename: 'sample.wav', contentType: 'audio/wav' });
-  form.append('sample_bytes', fileBuffer.length.toString());
-  form.append('access_key', CONFIG.acrcloud.accessKey);
-  form.append('data_type', 'audio');
-  form.append('signature_version', '1');
-  form.append('timestamp', timestamp.toString());
-  form.append('signature', signature);
-  const response = await fetch('https://' + CONFIG.acrcloud.host + '/v1/identify', {
+  const fileBuffer = fs.readFileSync(audioFile)
+  const form = new FormData()
+  form.append('sample', fileBuffer, { filename: 'sample.wav', contentType: 'audio/wav' })
+  const response = await fetch('http://localhost:5000/identify', {
     method: 'POST', body: form, timeout: 30000,
-  });
-  return response.json();
+  })
+  return response.json()
 }
+
 
 async function logPlayEvent(station, acr, chunkStartTime) {
   const customMatches = acr && acr.metadata && acr.metadata.custom_files ? acr.metadata.custom_files : [];
@@ -110,7 +103,7 @@ async function logPlayEvent(station, acr, chunkStartTime) {
     frequency: station.frequency,
     ad_id: match.acrid,
     ad_title: match.title || 'Unknown',
-    advertiser: match.custom_fields ? match.custom_fields.advertiser : null,
+    advertiser: match.advertiser || (match.custom_fields ? match.custom_fields.advertiser : null) || null,
     play_start: new Date(chunkStartTime).toISOString(),
     duration_sec: match.duration_ms ? Math.round(match.duration_ms / 1000) : null,
     confidence: match.score || null,

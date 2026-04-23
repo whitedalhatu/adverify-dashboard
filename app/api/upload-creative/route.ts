@@ -11,12 +11,13 @@ export async function POST(request: NextRequest) {
     const title = formData.get('title') as string
     const advertiser = formData.get('advertiser') as string
     const agency = (formData.get('agency') as string) || ''
+    const stationsRaw = formData.get('stations') as string
+    const stations = stationsRaw ? JSON.parse(stationsRaw) : []
 
     if (!file || !title || !advertiser) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Forward to fingerprint server
     const upstream = new FormData()
     const bytes = await file.arrayBuffer()
     const blob = new Blob([bytes], { type: file.type || 'audio/mp3' })
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
     upstream.append('title', title)
     upstream.append('advertiser', advertiser)
     upstream.append('agency', agency)
+    upstream.append('stations', JSON.stringify(stations))
 
     const res = await fetch(`${FINGERPRINT_SERVER}/upload`, {
       method: 'POST',
@@ -42,21 +44,13 @@ export async function POST(request: NextRequest) {
       title: data.title,
       advertiser: data.advertiser,
       duration: data.duration,
+      stations: stations,
       message: data.message,
     })
 
   } catch (err: any) {
-    console.error('Upload error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
-
-export async function GET() {
-  try {
-    const res = await fetch(`${FINGERPRINT_SERVER}/creatives`)
-    const data = await res.json()
-    return NextResponse.json(data)
-  } catch {
-    return NextResponse.json([])
+    return NextResponse.json({
+      error: 'Fingerprint server unavailable. Make sure it is running on localhost:5000.'
+    }, { status: 503 })
   }
 }

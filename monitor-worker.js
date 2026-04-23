@@ -61,7 +61,7 @@ function captureChunk(station) {
       '-i', station.streamUrl,
       '-t', String(CONFIG.chunkDurationSeconds),
       '-vn',
-      '-ar', '8000',
+      '-ar', '44100',
       '-ac', '1',
       '-acodec', 'pcm_s16le',
       outputFile,

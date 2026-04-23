@@ -38,9 +38,7 @@ export default async function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
           {statCards.map(card => (
             <Link key={card.label} href={card.href} style={{ textDecoration: 'none' }}>
-              <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', border: '0.5px solid #E2E8F0', cursor: 'pointer', transition: 'box-shadow 0.2s', position: 'relative', overflow: 'hidden' }}
-                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)')}
-                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
+              <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', border: '0.5px solid #E2E8F0', cursor: 'pointer', transition: 'box-shadow 0.2s', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: card.color, borderRadius: '12px 0 0 12px' }}></div>
                 <div style={{ paddingLeft: 8 }}>
                   <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>{card.label}</div>
@@ -86,9 +84,7 @@ export default async function Dashboard() {
             </div>
             {STATION_LAYERS.map(s => (
               <Link key={s.id} href="/stations" style={{ textDecoration: 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, marginBottom: 6, cursor: 'pointer', background: '#FAFAFA', border: '0.5px solid #F1F5F9' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#F0F9FA')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#FAFAFA')}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, marginBottom: 6, cursor: 'pointer', background: '#FAFAFA', border: '0.5px solid #F1F5F9' }}>
                   <div>
                     <div style={{ fontWeight: 500, fontSize: 14, color: '#0D1B3E', marginBottom: 2 }}>{s.name}</div>
                     <div style={{ fontSize: 12, color: '#64748B' }}>{s.market} · {s.frequency}</div>
@@ -119,9 +115,7 @@ export default async function Dashboard() {
               </div>
             ) : recentPlays.map((play, i) => (
               <Link key={i} href={`/query?advertiser=${play.advertiser || ''}`} style={{ textDecoration: 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 8, marginBottom: 4, cursor: 'pointer' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#F8FAFC')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 8, marginBottom: 4, cursor: 'pointer' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 500, fontSize: 13, color: '#0D1B3E' }}>{play.ad_title ?? 'Unknown'}</div>
                     <div style={{ fontSize: 12, color: '#64748B' }}>{play.station_name} · {play.advertiser ?? '—'}</div>
@@ -147,9 +141,7 @@ export default async function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
             {STATION_LAYERS.map(s => (
               <Link key={s.id} href="/stations" style={{ textDecoration: 'none' }}>
-                <div style={{ border: '0.5px solid #E2E8F0', borderRadius: 10, padding: '1rem', background: '#FAFAFA', cursor: 'pointer' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#F0F9FA')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#FAFAFA')}>
+                <div style={{ border: '0.5px solid #E2E8F0', borderRadius: 10, padding: '1rem', background: '#FAFAFA', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14, color: '#0D1B3E', marginBottom: 2 }}>{s.name}</div>
